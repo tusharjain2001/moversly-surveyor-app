@@ -1,25 +1,53 @@
 {
   "expo": {
-    "name": "moversly-surveyor-app",
-    "slug": "moversly-surveyor-app",
+    "name": "Moversly Surveyor",
+    "slug": "moversly-surveyor",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.moversly.surveyor"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#6C3BE4",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.moversly.surveyor"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Moversly Surveyor to use the camera to record rooms.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Moversly Surveyor to record the discussion with the customer.",
+          "enableBackgroundRecording": false
+        }
+      ],
+      "expo-secure-store",
+      "expo-image",
+      "expo-status-bar",
+      "expo-font",
+      "expo-asset"
+    ],
+    "scheme": "moversly-surveyor",
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
