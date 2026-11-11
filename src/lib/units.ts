@@ -2,8 +2,11 @@ import type { Item, Room, Survey } from "./types";
 
 export const M3_TO_FT3 = 35.3147;
 
-/** Volume of one unit, m³. */
-export const unitM3 = (it: Item) => it.dims[0] * it.dims[1] * it.dims[2];
+/** Volume of one unit from its size alone, m³. */
+export const sizeM3 = (it: Pick<Item, "dims">) => it.dims[0] * it.dims[1] * it.dims[2];
+/** Volume of one unit, m³: the cft the surveyor typed, else the size plus the packing allowance
+ *  our server adds to scanned items (client, 2026-11-11: AI volumes looked low). */
+export const unitM3 = (it: Item) => (it.typedFt3 != null ? it.typedFt3 / M3_TO_FT3 : sizeM3(it) + (it.extraFt3 ?? 0) / M3_TO_FT3);
 /** Volume of the line (all units), m³. */
 export const itemM3 = (it: Item) => unitM3(it) * it.qty;
 export const roomM3 = (room: Room) => room.items.reduce((s, it) => s + itemM3(it), 0);

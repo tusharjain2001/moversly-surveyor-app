@@ -1,0 +1,25 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "autoIncrement": true,
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_SURVEY_API_URL": "https://instant-booking.moversly.com/ai"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_SURVEY_API_URL": "https://instant-booking.moversly.com/ai"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

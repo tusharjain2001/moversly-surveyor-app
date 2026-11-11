@@ -37,7 +37,7 @@ export default function Login() {
           <View style={{ alignItems: "center", marginBottom: 36 }}>
             <Logo size={26} />
             <Text style={st.title}>Surveyor login</Text>
-            <Muted style={{ textAlign: "center" }}>Sign in to see your survey visits for today.</Muted>
+            <Muted style={{ textAlign: "center" }}>Sign in to see your customers.</Muted>
           </View>
 
           <Text style={st.label}>Email</Text>
@@ -80,7 +80,7 @@ export default function Login() {
           {USE_MOCK && (
             <View style={st.demo}>
               <Icon name="flask-outline" size={18} color={C.amber} />
-              <Text style={st.demoText}>Demo mode: sample customers. Any email and password works until the real login is connected.</Text>
+              <Text style={st.demoText}>Demo mode: sample customers. Any email and password works.</Text>
             </View>
           )}
         </ScrollView>

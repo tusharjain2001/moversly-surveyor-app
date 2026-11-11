@@ -29,7 +29,7 @@ No pricing for now (the client hasn't decided whether surveyors should see it).
 
 | What | From | File |
 |---|---|---|
-| Login, visits, customer details, dashboard counts, saving the survey | **The tech team's API (not ready).** Sample data until then. | `src/api/backend.ts`, `src/api/mock.ts`, `docs/API-NEEDED.md` |
+| Login, user, leads, saving the survey items | **The tech team's API** (`api.moversly.com`, their "API For Mobile App" document) | `src/api/backend.ts`, `src/lib/saveRequest.ts`, `docs/API-NEEDED.md` |
 | Room scan (video → items with sizes and photos), item list | Our AI server, same as the Moving to India page | `src/api/survey.ts` |
 | Voice notes → text | Our AI server: `POST /ai/transcribe`, Whisper on the Modal GPU | `src/api/survey.ts`, `moversely/ai/survey/transcribe.py` |
 
@@ -55,13 +55,13 @@ share (APK link), use Expo's cloud build: `npx eas-cli@latest build -p android -
 Copy `.env.example` to `.env`:
 
 - `EXPO_PUBLIC_SURVEY_API_URL`: our AI server (default `https://instant-booking.moversly.com/ai`).
-- `EXPO_PUBLIC_BACKEND_URL`: the tech team's API. Empty = sample data (demo mode).
-- `EXPO_PUBLIC_USE_MOCK`: `true` / `false` to force demo mode on or off.
+- `EXPO_PUBLIC_BACKEND_URL`: the tech team's API (default `https://api.moversly.com`).
+- `EXPO_PUBLIC_USE_MOCK=true`: demo with sample customers and no real login.
 
 `EXPO_PUBLIC_` values are built into the app, so never put secrets in them.
 
 ## Still to do
 
-- Connect the tech team's APIs (see `docs/API-NEEDED.md`), including how item photos are saved.
+- Open questions for the tech team (`docs/API-NEEDED.md`): keeping all rooms on the order, room names, item photos, voice notes.
 - Real logo and app icon (the logo is a placeholder in the design's style: `src/components/Logo.tsx`).
 - Play Store account and listing.

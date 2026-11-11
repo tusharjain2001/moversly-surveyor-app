@@ -16,6 +16,8 @@ export interface JobResultItem {
   confidence: Confidence;
   notes?: string[];
   thumbnail?: string;
+  /** Packing allowance per item (cft) that the app adds to the volume. */
+  extra_ft3?: number;
 }
 export interface Job {
   status: "queued" | "running" | "done" | "error";
@@ -47,8 +49,13 @@ function upload(path: string, field: string, uri: string, kind: "video" | "audio
     for (const [k, v] of Object.entries(extra)) form.append(k, v);
     const xhr = new XMLHttpRequest();
     xhr.open("POST", SURVEY_API_URL + path);
+    // On mobile data Android can resend part of the file after a dropped connection and counts those
+    // bytes again (the team saw "133%"), so never report more than 100% or go backwards.
+    let shown = 0;
     xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onProgress?.(e.loaded / e.total);
+      if (!e.lengthComputable || !e.total) return;
+      shown = Math.max(shown, Math.min(1, e.loaded / e.total));
+      onProgress?.(shown);
     };
     xhr.onload = () => {
       let body: any = null;

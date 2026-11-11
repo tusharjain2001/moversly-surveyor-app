@@ -4,8 +4,8 @@
 /** Our AI survey server (room scans, item list, voice-note transcripts). */
 export const SURVEY_API_URL = (process.env.EXPO_PUBLIC_SURVEY_API_URL || "https://instant-booking.moversly.com/ai").replace(/\/$/, "");
 
-/** The tech team's API (login, appointments, saving surveys). Not given to us yet. */
-export const BACKEND_URL = (process.env.EXPO_PUBLIC_BACKEND_URL || "").replace(/\/$/, "");
+/** The Moversly tech team's API (login, leads, saving the survey items). */
+export const BACKEND_URL = (process.env.EXPO_PUBLIC_BACKEND_URL || "https://api.moversly.com").replace(/\/$/, "");
 
-/** Sample data until the tech team's API is ready. Turns off by itself once BACKEND_URL is set. */
-export const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK ? process.env.EXPO_PUBLIC_USE_MOCK === "true" : !BACKEND_URL;
+/** Sample customers instead of the real API: set EXPO_PUBLIC_USE_MOCK=true for a demo without a login. */
+export const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK === "true";

@@ -25,6 +25,8 @@ export default function RoomScreen() {
   const locked = survey.status === "submitted";
   const next = nextRoom(survey, room.id);
   const count = roomCount(room);
+  // Items can be added at any time, also while the video uploads or is measured (they stay when the AI's items arrive).
+  const showItems = room.status === "done" || room.items.length > 0;
 
   const record = () => router.push({ pathname: "/survey/[id]/record/[roomId]", params: { id, roomId } });
   const addItems = () => router.push({ pathname: "/survey/[id]/add/[roomId]", params: { id, roomId } });
@@ -46,10 +48,10 @@ export default function RoomScreen() {
       <ScrollView contentContainerStyle={st.wrap}>
         <View>
           <H1>{room.status === "done" ? `${room.name} – Items` : `Scan – ${room.name}`}</H1>
-          {room.status === "done" && (
+          {showItems && (
             <Muted>
               {count} item{count === 1 ? "" : "s"} · {cft(roomM3(room))}
-              {room.manual ? " · added by hand" : ""}
+              {room.manual ? " · added by hand" : isBusy(room) ? " so far" : ""}
             </Muted>
           )}
         </View>
@@ -74,7 +76,7 @@ export default function RoomScreen() {
             {!locked && (
               <>
                 <Button title="Record the room" icon="videocam" onPress={record} />
-                <Button title="Add items without recording" kind="outline" icon="add" onPress={addItems} />
+                {room.items.length === 0 && <Button title="Add items without recording" kind="outline" icon="add" onPress={addItems} />}
               </>
             )}
           </>
@@ -88,13 +90,13 @@ export default function RoomScreen() {
             </View>
             <ProgressBar value={room.progress} />
             <Muted>{room.stage || "Please wait"} · {Math.round(room.progress * 100)}%</Muted>
-            <Muted>You can scan the next room while this one is measured. The first scan of the day can take a minute longer.</Muted>
+            <Muted>You can add items by hand or scan the next room while this one is measured. The first scan of the day can take a minute longer.</Muted>
           </Card>
         )}
 
-        {room.status === "done" && (
+        {showItems && (
           <View style={{ gap: 10 }}>
-            {room.items.length === 0 && <Message icon="cube-outline" title="No items in this room" text="Add items or rescan the room." />}
+            {room.status === "done" && room.items.length === 0 && <Message icon="cube-outline" title="No items in this room" text="Add items or rescan the room." />}
             {room.items.map((it) => (
               <ItemRow
                 key={it.id}
@@ -107,6 +109,7 @@ export default function RoomScreen() {
             {!locked && <Button title="Add item" kind="outline" icon="add" onPress={addItems} />}
           </View>
         )}
+        {!locked && isBusy(room) && room.items.length === 0 && <Button title="Add item" kind="outline" icon="add" onPress={addItems} />}
       </ScrollView>
 
       {!locked && (room.status === "done" || isBusy(room)) && (

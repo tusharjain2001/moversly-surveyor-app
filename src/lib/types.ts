@@ -17,6 +17,10 @@ export interface Item {
   comment?: string;
   /** Photo of the item with its outline, from the AI (data:image/jpeg;base64,...). */
   thumbnail?: string;
+  /** Packing allowance per unit (cft) from our server, added to the size's volume. Scanned items only. */
+  extraFt3?: number;
+  /** The surveyor's own volume per unit (cft). Replaces the size-based volume and the allowance. */
+  typedFt3?: number;
 }
 
 export type RoomStatus = "empty" | "uploading" | "processing" | "done" | "error";
@@ -65,26 +69,26 @@ export interface Surveyor {
   email: string;
 }
 
-export type MoveSize = "Full household" | "Partial household" | "A few boxes";
-
-/** One survey visit booked with a customer (comes from the tech team's API). */
+/** One lead from the tech team's API (GET /api/v1/order/my-orders/for-app, "matching_orders"). */
 export interface Appointment {
+  /** request_id: the order number on the Moversly system. */
   id: string;
-  /** The order / lead number on the Moversly system. */
-  orderId?: string;
   customer: { name: string; phone: string; email: string };
-  origin: string;
-  destination: string;
-  /** Full address where the survey happens. */
-  address: string;
-  /** ISO date (YYYY-MM-DD). */
-  movingDate: string;
-  /** ISO date-time of the visit. */
-  surveyAt: string;
-  moveSize: MoveSize;
-  status: "pending" | "completed";
-  /** Which website or page the lead came from. */
-  source?: string;
+  /** from_address, e.g. "188 Keng Lee Rd, Singapore 308414, SG": where the survey happens. */
+  from: string;
+  /** to_address, e.g. "Pune, IN". */
+  to: string;
+  /** ISO date-times (the API sends epoch seconds). */
+  movingDate?: string;
+  appointmentAt?: string;
+  /** appointment_status, e.g. ACCEPTED / ACTIVE. */
+  appointmentStatus?: string;
+  /** order_state, e.g. SELF_SURVEY_INPROGRESS. */
+  orderState?: string;
+  /** shipment_mode: SEA / ROAD / AIR. */
+  shipmentMode?: string;
+  /** weight_or_volume in cft, when the order already has one. */
+  volumeFt3?: number;
 }
 
 export interface CatalogItem {

@@ -4,11 +4,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import * as backend from "@/api/backend";
 import { roomIcon } from "@/components/roomIcon";
-import { Button, Card, H1, Icon, Message, Muted } from "@/components/ui";
+import { Button, Card, H1, Icon, IconButton, Message, Muted } from "@/components/ui";
 import { confirm, notify } from "@/lib/confirm";
 import { isBusy } from "@/lib/flow";
 import { dateTimeText } from "@/lib/format";
-import { buildSurveyPayload } from "@/lib/payload";
 import { markSubmitted, useSurvey } from "@/lib/store";
 import { cft, m3Text, roomCount, roomM3, surveyCount, surveyM3, surveyRooms } from "@/lib/units";
 import { C, R } from "@/theme";
@@ -24,8 +23,7 @@ export default function SummaryScreen() {
   const rooms = surveyRooms(survey);
   const total = surveyM3(survey);
   const busy = rooms.filter(isBusy);
-  const notScanned = rooms.filter((r) => r.status === "empty" || r.status === "error");
-  const pendingNotes = survey.voiceNotes.filter((n) => n.status === "uploading" || n.status === "transcribing");
+  const notScanned = rooms.filter((r) => (r.status === "empty" || r.status === "error") && r.items.length === 0);
 
   const submit = async () => {
     if (busy.length) {
@@ -38,14 +36,13 @@ export default function SummaryScreen() {
     }
     const warnings = [
       notScanned.length ? `Not scanned: ${notScanned.map((r) => r.name).join(", ")} (they will be left out).` : "",
-      pendingNotes.length ? `${pendingNotes.length} voice note transcript(s) are not ready yet and will be sent without text.` : "",
+      "The items are saved on the customer's order. Voice notes and typed notes stay on this phone for now.",
     ].filter(Boolean);
     const ok = await confirm("Submit survey?", [...warnings, "You can't change the survey after submitting."].join("\n\n"), "Submit");
     if (!ok) return;
     setSending(true);
     try {
-      const appointment = await backend.getAppointment(id).catch(() => undefined);
-      await backend.submitSurvey(id, buildSurveyPayload(survey, appointment));
+      await backend.submitSurvey(id, survey);
       markSubmitted(id);
       router.replace({ pathname: "/survey/[id]/done", params: { id } });
     } catch (e: any) {
@@ -79,9 +76,19 @@ export default function SummaryScreen() {
                 <Icon name={roomIcon(r.name)} size={18} color={C.muted} />
                 <View style={{ flex: 1 }}>
                   <Text style={st.rowName} numberOfLines={1}>{r.name}</Text>
-                  <Text style={st.rowCount}>{done ? `${n} item${n === 1 ? "" : "s"}` : isBusy(r) ? "Measuring…" : "Not scanned"}</Text>
+                  <Text style={st.rowCount}>
+                    {done ? `${n} item${n === 1 ? "" : "s"}` : isBusy(r) ? `Measuring…${n ? ` · ${n} added by hand` : ""}` : n ? `${n} added by hand` : "Not scanned"}
+                  </Text>
                 </View>
-                <Text style={st.rowVol}>{done ? cft(roomM3(r)) : ""}</Text>
+                <Text style={st.rowVol}>{done || n ? cft(roomM3(r)) : ""}</Text>
+                {!locked && (
+                  <IconButton
+                    name="add"
+                    label={`Add an item to ${r.name}`}
+                    onPress={() => router.push({ pathname: "/survey/[id]/add/[roomId]", params: { id, roomId: r.id } })}
+                    size={32}
+                  />
+                )}
                 <Icon name="chevron-forward" size={18} color={C.faint} />
               </Pressable>
             );

@@ -33,5 +33,8 @@ export function useAsync<T>(load: () => Promise<T>, deps: unknown[] = []) {
     setNonce((n) => n + 1);
   }, []);
 
-  return { ...state, reload };
+  /** Load again without the pull-to-refresh spinner (e.g. when coming back to a screen). */
+  const refresh = useCallback(() => setNonce((n) => n + 1), []);
+
+  return { ...state, reload, refresh };
 }

@@ -39,3 +39,23 @@ export function initials(name: string) {
 }
 
 export const firstName = (name: string) => name.trim().split(/\s+/)[0] || name;
+
+// The API's codes in plain words.
+const LABELS: Record<string, string> = {
+  SELF_SURVEY_INPROGRESS: "Self survey in progress",
+  CUSTOMER_QUOTE_ISSUED_STATE: "Quote issued",
+  QUOTE_REJECTED_STATE: "Quote rejected",
+  NEW: "New",
+  SEA: "Sea",
+  ROAD: "Road",
+  AIR: "Air",
+};
+
+/** "SELF_SURVEY_INPROGRESS" -> "Self survey in progress"; text that isn't a code is kept as it is. */
+export function labelOf(code?: string) {
+  if (!code) return "";
+  if (LABELS[code]) return LABELS[code];
+  if (/[a-z]/.test(code)) return code;
+  const s = code.replace(/_STATE$/, "").replace(/INPROGRESS/g, "IN_PROGRESS").replace(/_/g, " ").toLowerCase();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

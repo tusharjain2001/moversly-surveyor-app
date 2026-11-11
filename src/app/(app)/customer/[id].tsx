@@ -2,13 +2,11 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-na
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import * as backend from "@/api/backend";
-import { Avatar, Button, Card, Icon, IconButton, InfoRow, Loading, Message, Muted, Pill } from "@/components/ui";
-import { dateText, dateTimeText, durationText, initials } from "@/lib/format";
+import { Avatar, Button, Card, Icon, InfoRow, Loading, Message, Muted, Pill } from "@/components/ui";
+import { dateText, dateTimeText, durationText, initials, labelOf } from "@/lib/format";
 import { startSurvey, useSurvey } from "@/lib/store";
 import { useAsync } from "@/lib/useAsync";
 import { C, R } from "@/theme";
-
-const digits = (s: string) => s.replace(/\D/g, "");
 
 export default function CustomerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -18,10 +16,11 @@ export default function CustomerScreen() {
   if (loading) return <Loading />;
   if (error || !a) return <Message icon="alert-circle-outline" title="Couldn't load this customer" text={error ?? ""} action={<Button title="Try again" kind="outline" small onPress={reload} />} />;
 
-  const submitted = a.status === "completed" || survey?.status === "submitted";
+  const submitted = survey?.status === "submitted";
   const started = !submitted && !!survey && survey.rooms.some((r) => r.items.length > 0 || r.status !== "empty");
   const voiceCount = survey?.voiceNotes.length ?? 0;
   const voiceMs = survey?.voiceNotes.reduce((t, n) => t + n.durationMs, 0) ?? 0;
+  const { name, phone, email } = a.customer;
 
   const open = (url: string) => Linking.openURL(url).catch(() => {});
   const goSurvey = () => {
@@ -33,48 +32,63 @@ export default function CustomerScreen() {
     router.push({ pathname: "/survey/[id]/notes", params: { id } });
   };
 
+  // Only what the leads API gives.
+  const rows = [
+    a.to && { icon: "location-outline", label: "Moving to", value: a.to },
+    a.movingDate && { icon: "calendar-outline", label: "Moving date", value: dateText(a.movingDate) },
+    a.appointmentAt && {
+      icon: "time-outline",
+      label: "Survey appointment",
+      value: `${dateTimeText(a.appointmentAt)}${a.appointmentStatus ? ` · ${labelOf(a.appointmentStatus)}` : ""}`,
+    },
+    a.shipmentMode && { icon: "boat-outline", label: "Shipment", value: labelOf(a.shipmentMode) },
+    a.volumeFt3 && { icon: "cube-outline", label: "Volume on the order", value: `${Math.round(a.volumeFt3).toLocaleString()} cft` },
+    a.orderState && { icon: "flag-outline", label: "Lead status", value: labelOf(a.orderState) },
+    { icon: "document-text-outline", label: "Order no.", value: a.id },
+  ].filter(Boolean) as { icon: "time-outline"; label: string; value: string }[];
+
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
       <ScrollView contentContainerStyle={st.wrap}>
         <Card>
           <View style={st.head}>
-            <Avatar text={initials(a.customer.name)} size={56} />
+            <Avatar text={initials(name)} size={56} />
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={st.name}>{a.customer.name}</Text>
-              {submitted ? <Pill text="Completed" color={C.green} bg={C.greenTint} /> : started ? <Pill text="In progress" /> : <Pill text="Pending" color={C.amber} bg={C.amberTint} />}
+              <Text style={st.name}>{name}</Text>
+              {submitted ? <Pill text="Survey submitted" color={C.green} bg={C.greenTint} /> : started ? <Pill text="Survey in progress" /> : null}
             </View>
           </View>
-          <View style={st.contact}>
-            <Icon name="call-outline" size={18} color={C.primary} />
-            <Text style={st.contactText}>{a.customer.phone}</Text>
-            <IconButton name="call" label={`Call ${a.customer.name}`} onPress={() => open(`tel:${a.customer.phone.replace(/\s/g, "")}`)} />
-            <IconButton name="logo-whatsapp" label={`WhatsApp ${a.customer.name}`} color={C.white} bg="#25D366" onPress={() => open(`https://wa.me/${digits(a.customer.phone)}`)} />
-          </View>
-          <Pressable style={st.contact} onPress={() => open(`mailto:${a.customer.email}`)} accessibilityRole="link">
-            <Icon name="mail-outline" size={18} color={C.primary} />
-            <Text style={[st.contactText, { color: C.primary }]}>{a.customer.email}</Text>
-          </Pressable>
+          {phone ? (
+            <View style={st.contact}>
+              <Icon name="call-outline" size={18} color={C.primary} />
+              <Text style={st.contactText}>{phone}</Text>
+            </View>
+          ) : null}
+          {email ? (
+            <Pressable style={st.contact} onPress={() => open(`mailto:${email}`)} accessibilityRole="link">
+              <Icon name="mail-outline" size={18} color={C.primary} />
+              <Text style={[st.contactText, { color: C.primary }]}>{email}</Text>
+            </Pressable>
+          ) : null}
         </Card>
 
-        <Pressable onPress={() => open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.address)}`)} accessibilityRole="link">
-          <Card style={st.address}>
-            <Icon name="map-outline" color={C.primary} />
-            <View style={{ flex: 1 }}>
-              <Muted style={{ fontSize: 12 }}>Survey address</Muted>
-              <Text style={st.addressText}>{a.address}</Text>
-            </View>
-            <Text style={st.link}>Map</Text>
-          </Card>
-        </Pressable>
+        {a.from ? (
+          <Pressable onPress={() => open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.from)}`)} accessibilityRole="link">
+            <Card style={st.address}>
+              <Icon name="map-outline" color={C.primary} />
+              <View style={{ flex: 1 }}>
+                <Muted style={{ fontSize: 12 }}>Moving from (survey address)</Muted>
+                <Text style={st.addressText}>{a.from}</Text>
+              </View>
+              <Text style={st.link}>Map</Text>
+            </Card>
+          </Pressable>
+        ) : null}
 
         <Card style={{ paddingVertical: 4 }}>
-          <InfoRow icon="navigate-outline" label="Moving from" value={a.origin} />
-          <InfoRow icon="location-outline" label="Moving to" value={a.destination} />
-          <InfoRow icon="calendar-outline" label="Moving date" value={dateText(a.movingDate)} />
-          <InfoRow icon="time-outline" label="Survey date & time" value={dateTimeText(a.surveyAt)} />
-          <InfoRow icon="home-outline" label="Move size" value={a.moveSize} />
-          {a.source ? <InfoRow icon="globe-outline" label="Lead from" value={a.source} /> : null}
-          {a.orderId ? <InfoRow icon="document-text-outline" label="Order no." value={a.orderId} last /> : null}
+          {rows.map((r, i) => (
+            <InfoRow key={r.label} icon={r.icon} label={r.label} value={r.value} last={i === rows.length - 1} />
+          ))}
         </Card>
 
         <Pressable onPress={goNotes} accessibilityRole="button">

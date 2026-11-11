@@ -5,6 +5,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { Platform } from "react-native";
 import { File, Paths } from "expo-file-system";
 import { getJob, getTranscript, uploadAudio, uploadVideo, type JobResultItem } from "@/api/survey";
+import { isBusy } from "./flow";
 import type { CatalogItem, Item, Room, Survey, VoiceNote } from "./types";
 
 type State = Record<string, Survey>;
@@ -141,11 +142,14 @@ export function addRoom(id: string, name: string) {
 export const resetRoom = (id: string, roomId: string) =>
   updateRoom(id, roomId, { status: "empty", progress: 0, items: [], stage: undefined, error: undefined, jobId: undefined, manual: undefined });
 
+/** Items the surveyor added by hand: kept when a video is recorded and when its result arrives. */
+const byHand = (items: Item[]) => items.filter((it) => it.confidence === "manual");
+
 /** Upload the room video; polling picks the job up once it has a jobId. */
 export async function scanRoom(id: string, roomId: string, uri: string) {
   const room = state[id]?.rooms.find((r) => r.id === roomId);
   if (!room) return;
-  updateRoom(id, roomId, { selected: true, status: "uploading", progress: 0, stage: "Uploading video", error: undefined, items: [], manual: undefined });
+  updateRoom(id, roomId, { selected: true, status: "uploading", progress: 0, stage: "Uploading video", error: undefined, items: byHand(room.items), manual: undefined });
   try {
     const jobId = await uploadVideo(uri, room.name, (p) => updateRoom(id, roomId, { progress: p }));
     updateRoom(id, roomId, { status: "processing", jobId, progress: 0, stage: "Starting analysis" });
@@ -163,6 +167,7 @@ const fromJobItem = (it: JobResultItem): Item => ({
   confidence: it.confidence,
   notes: it.notes || [],
   thumbnail: it.thumbnail,
+  extraFt3: it.extra_ft3 || undefined,
 });
 
 // ── items ───────────────────────────────────────────────────────────────────
@@ -175,16 +180,15 @@ export function removeItem(id: string, roomId: string, itemId: string) {
   updateRoom(id, roomId, (r) => ({ items: r.items.filter((it) => it.id !== itemId) }));
 }
 
-/** Add from the item list (typical size) or a custom name. A room without a video becomes "added by hand". */
+/** Add from the item list (typical size) or a custom name, at any time. A room without a video becomes
+ *  "added by hand"; while a video is uploading or being measured, the room keeps waiting for it. */
 export function addItem(id: string, roomId: string, c: CatalogItem): string {
   const item: Item = { id: uid(), key: c.key, label: c.label, dims: [...c.typical], qty: 1, confidence: "manual", notes: [] };
-  updateRoom(id, roomId, (r) => ({
-    selected: true,
-    status: "done",
-    manual: r.status === "done" ? r.manual : true,
-    error: undefined,
-    items: [...r.items, item],
-  }));
+  updateRoom(id, roomId, (r) =>
+    isBusy(r)
+      ? { items: [...r.items, item] }
+      : { selected: true, status: "done", manual: r.status === "done" ? r.manual : true, error: undefined, items: [...r.items, item] },
+  );
   return item.id;
 }
 
@@ -239,8 +243,10 @@ async function pollOnce() {
         try {
           const job = await getJob(room.jobId);
           if (!job) updateRoom(s.appointmentId, room.id, { status: "error", error: "The AI server lost this video. Please record the room again." });
-          else if (job.status === "done" && job.result)
-            updateRoom(s.appointmentId, room.id, { status: "done", progress: 1, stage: undefined, error: undefined, items: job.result.items.map(fromJobItem) });
+          else if (job.status === "done" && job.result) {
+            const found = job.result.items.map(fromJobItem);
+            updateRoom(s.appointmentId, room.id, (r) => ({ status: "done", progress: 1, stage: undefined, error: undefined, items: [...found, ...byHand(r.items)] }));
+          }
           else if (job.status === "error") updateRoom(s.appointmentId, room.id, { status: "error", error: job.error || "The analysis failed." });
           else updateRoom(s.appointmentId, room.id, { stage: job.stage, progress: job.progress ?? 0 });
         } catch {
